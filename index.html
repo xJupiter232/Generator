@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Generator haseł</title>
+
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#f2f2f2" />
+
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Hasła" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+
+  <style>
+    :root{
+      --blue:#007aff;
+      --bg:#f2f2f2;
+      --card:#ffffff;
+      --text:#111;
+      --stroke: rgba(0,0,0,.08);
+      --shadow: 0 2px 10px rgba(0,0,0,.08);
+      --radius: 10px;
+    }
+
+    body{
+      font-family: Arial, sans-serif;
+      padding: 16px;
+      background: var(--bg);
+      max-width: 480px;
+      margin: auto;
+      color: var(--text);
+      padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    }
+
+    h1{ text-align:center; margin: 8px 0 18px; }
+
+    .card{
+      margin-top: 14px;
+      padding: 14px;
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--stroke);
+    }
+
+    label{ font-weight:bold; }
+
+    input[type="range"]{ width:100%; margin-top: 8px; }
+
+    .row{ display:flex; justify-content:space-between; align-items:center; }
+
+    .pill{
+      background:#eef6ff;
+      border:1px solid rgba(0,122,255,.25);
+      color:#0b5fd6;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .checks{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      margin-top: 12px;
+    }
+
+    .check{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      padding: 10px;
+      border:1px solid var(--stroke);
+      border-radius: 8px;
+      background: #fafafa;
+    }
+
+    button{
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      margin-top: 12px;
+      background-color: #007aff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .secondary{
+      background:#fff;
+      color:#007aff;
+      border: 1px solid rgba(0,122,255,.35);
+    }
+
+    .outputBox{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      word-break: break-all;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--stroke);
+      background: #fbfbfb;
+      cursor: pointer;
+    }
+
+    .histRow{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      margin-top: 10px;
+    }
+
+    .histRow .outputBox{
+      flex:1;
+      font-size: 13px;
+      cursor: default;
+    }
+
+    .histBtn{
+      width:auto;
+      margin-top:0;
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+
+    #powiadomienie{
+      position: fixed;
+      bottom: calc(20px + env(safe-area-inset-bottom));
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #007aff;
+      color: white;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 15px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+      display:none;
+      z-index:1000;
+    }
+
+    /* Modal */
+    #modal{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display:none;
+      justify-content:center;
+      align-items:center;
+      padding:20px;
+    }
+
+    .modalBox{
+      background:white;
+      padding:20px;
+      border-radius:12px;
+      width:100%;
+      max-width:360px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+
+    .modalBtns{
+      display:flex;
+      gap:10px;
+      margin-top:15px;
+    }
+
+    .modalBtns button{
+      margin-top:0;
+      flex:1;
+    }
+
+    @media (max-width: 420px){
+      .checks{ grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>Generator haseł</h1>
+
+<section class="card">
+  <div class="row">
+    <label>Długość</label>
+    <span class="pill"><span id="lenVal">16</span></span>
+  </div>
+
+  <input id="length" type="range" min="8" max="64" value="16" />
+
+  <div class="checks">
+    <label class="check"><input id="lower" type="checkbox" checked> Małe litery</label>
+    <label class="check"><input id="upper" type="checkbox" checked> Duże litery</label>
+    <label class="check"><input id="digits" type="checkbox" checked> Cyfry</label>
+    <label class="check"><input id="symbols" type="checkbox"> Symbole</label>
+  </div>
+
+  <button id="gen">Generuj</button>
+</section>
+
+<section class="card">
+  <label>Wynik</label>
+  <div id="output" class="outputBox">Kliknij „Generuj”</div>
+</section>
+
+<section class="card">
+  <div class="row">
+    <label>Historia</label>
+    <span class="pill" id="histCount">0</span>
+  </div>
+
+  <div id="history"></div>
+  <button id="clear" class="secondary">Wyczyść historię</button>
+</section>
+
+<div id="powiadomienie"></div>
+
+<div id="modal">
+  <div class="modalBox">
+    <strong>Czy na pewno usunąć historię?</strong>
+    <div class="modalBtns">
+      <button onclick="closeModal()" class="secondary">Anuluj</button>
+      <button onclick="confirmClear()">Usuń</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+const lengthEl = $("length");
+const lenVal = $("lenVal");
+const outputEl = $("output");
+
+const opts = {
+  lower: $("lower"),
+  upper: $("upper"),
+  digits: $("digits"),
+  symbols: $("symbols")
+};
+
+const sets = {
+  lower: "abcdefghijklmnopqrstuvwxyz",
+  upper: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+  digits: "0123456789",
+  symbols: "!@#$%^&*()-_=+[]{};:,.<>?~"
+};
+
+const HISTORY_KEY = "pw_history_v1";
+const MAX_HISTORY = 8;
+
+function showToast(text){
+  const el = $("powiadomienie");
+  el.textContent = text;
+  el.style.display = "block";
+  setTimeout(() => el.style.display = "none", 2000);
+}
+
+function cryptoRandInt(max){
+  const arr = new Uint32Array(1);
+  let x;
+  const limit = Math.floor(0xFFFFFFFF / max) * max;
+  do{
+    crypto.getRandomValues(arr);
+    x = arr[0];
+  } while(x >= limit);
+  return x % max;
+}
+
+function pick(str){
+  return str[cryptoRandInt(str.length)];
+}
+
+function loadHistory(){
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); }
+  catch { return []; }
+}
+
+function saveHistory(list){
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, MAX_HISTORY)));
+}
+
+function pushHistory(pw){
+  const list = loadHistory().filter(x => x !== pw);
+  list.unshift(pw);
+  saveHistory(list);
+  renderHistory();
+}
+
+function renderHistory(){
+  const list = loadHistory();
+  $("history").innerHTML = "";
+  $("histCount").textContent = list.length;
+
+  for(const pw of list){
+    const row = document.createElement("div");
+    row.className = "histRow";
+
+    const code = document.createElement("div");
+    code.className = "outputBox";
+    code.textContent = pw;
+
+    const btn = document.createElement("button");
+    btn.className = "secondary histBtn";
+    btn.textContent = "Kopiuj";
+    btn.onclick = () => {
+      navigator.clipboard.writeText(pw);
+      showToast("Skopiowano");
+    };
+
+    row.appendChild(code);
+    row.appendChild(btn);
+    $("history").appendChild(row);
+  }
+}
+
+function generate(){
+  const len = Number(lengthEl.value);
+  lenVal.textContent = len;
+
+  const enabled = Object.keys(opts).filter(k => opts[k].checked);
+  if(enabled.length === 0){
+    outputEl.textContent = "Wybierz przynajmniej jedną opcję";
+    return;
+  }
+
+  const chars = enabled.map(k => pick(sets[k]));
+  const pool = enabled.map(k => sets[k]).join("");
+
+  while(chars.length < len) chars.push(pick(pool));
+
+  for(let i = chars.length - 1; i > 0; i--){
+    const j = cryptoRandInt(i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+
+  const pw = chars.join("");
+  outputEl.textContent = pw;
+  pushHistory(pw);
+}
+
+function copyCurrent(){
+  const text = outputEl.textContent.trim();
+  if(!text || text.includes("Kliknij") || text.includes("Wybierz")) return;
+  navigator.clipboard.writeText(text);
+  showToast("Skopiowano");
+}
+
+function openModal(){
+  $("modal").style.display = "flex";
+}
+
+function closeModal(){
+  $("modal").style.display = "none";
+}
+
+function confirmClear(){
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistory();
+  closeModal();
+  showToast("Historia usunięta");
+}
+
+$("gen").addEventListener("click", generate);
+$("clear").addEventListener("click", openModal);
+outputEl.addEventListener("click", copyCurrent);
+
+lengthEl.addEventListener("input", () => {
+  lenVal.textContent = lengthEl.value;
+});
+
+renderHistory();
+lenVal.textContent = lengthEl.value;
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("service-worker.js").catch(() => {});
+  });
+}
+</script>
+
+</body>
+</html>
